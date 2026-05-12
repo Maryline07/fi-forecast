@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Financial Independence Forecast</title>
+  <link rel="icon" href="data:,">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --paper:        #f7f7f3;
+      --paper-alt:    #efefe9;
+      --ink:          #1a1f24;
+      --ink-soft:     #2a3138;
+      --ink-muted:    #6a7480;
+      --ink-faint:    #9aa3ad;
+      --rule:         #d8d5cc;
+      --rule-soft:    #e5e2d9;
+      --accent:       #a8542d;   /* warm copper — one accent against the cold field */
+      --accent-soft:  #f7e9df;
+      --col-cons:     #8aa3b3;
+      --col-real:     #2e5d7a;
+      --col-aggr:     #1a3a52;
+
+      --font-sans:    "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-mono:    "IBM Plex Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+    html, body { background: var(--paper); }
+    section { scroll-margin-top: 1rem; }
+    body {
+      font-family: var(--font-sans);
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 5rem;
+      line-height: 1.55;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Masthead */
+    .masthead {
+      border-top: 4px double var(--ink);
+      border-bottom: 1px solid var(--ink);
+      padding: 0.8rem 0 1rem;
+      margin-bottom: 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: 1.25rem;
+    }
+
+    /* Contents nav — magazine-style TOC right under masthead */
+    .contents {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.5rem 1.25rem;
+      padding: 0.7rem 0;
+      margin: 0 0 2.5rem;
+      border-bottom: 1px solid var(--rule);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--ink-muted);
+    }
+    .contents-label {
+      color: var(--ink);
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      margin-right: 0.25rem;
+    }
+    .contents a {
+      color: inherit;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.4rem;
+      transition: color 0.1s ease;
+      padding-bottom: 2px;
+      border-bottom: 1px solid transparent;
+    }
+    .contents a:hover {
+      color: var(--ink);
+      border-bottom-color: var(--ink);
+    }
+    .contents a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .contents .nav-kicker {
+      color: var(--ink);
+      font-weight: 600;
+      letter-spacing: 0.1em;
+    }
+    .masthead-text { display: flex; flex-direction: column; gap: 0.4rem; }
+    .masthead h1 {
+      font-family: var(--font-sans);
+      font-weight: 700;
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      letter-spacing: -0.01em;
+      margin: 0;
+      line-height: 1.1;
+    }
+    .masthead .strapline {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--ink-muted);
+      margin: 0;
+    }
+    .masthead-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.5rem;
+    }
+    .dateline {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+    }
+    .lang-toggle {
+      display: flex;
+      align-items: baseline;
+      gap: 0.45rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+    }
+    .lang-toggle button {
+      background: none;
+      border: none;
+      padding: 0;
+      color: inherit;
+      font: inherit;
+      letter-spacing: inherit;
+      text-transform: inherit;
+      cursor: pointer;
+      transition: color 0.1s ease;
+    }
+    .lang-toggle button:hover { color: var(--ink); }
+    .lang-toggle button.lang-active {
+      color: var(--ink);
+      border-bottom: 1px solid var(--ink);
+      padding-bottom: 1px;
+    }
+    .lang-toggle .lang-sep { color: var(--rule); }
+
+    /* Form */
+    form {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem 1.25rem;
+      padding: 1.25rem 1.25rem 1rem;
+      background: var(--paper-alt);
+      border: 1px solid var(--rule);
+      border-radius: 2px;
+      margin-bottom: 2.5rem;
+    }
+    form .field { display: flex; flex-direction: column; gap: 0.35rem; }
+    form .field--wide { grid-column: span 4; }
+    form label {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+    }
+    form input {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 1rem;
+      padding: 0.55rem 0.65rem;
+      border: 1px solid var(--rule);
+      background: var(--paper);
+      color: var(--ink);
+      border-radius: 2px;
+      transition: border-color 0.1s ease;
+    }
+    form input:focus {
+      outline: none;
+      border-color: var(--ink);
+    }
+    form .actions {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    form button {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 0.6rem 1.4rem;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: var(--paper);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background 0.1s ease, color 0.1s ease;
+    }
+    form button:hover { background: var(--paper); color: var(--ink); }
+
+    .form-warning {
+      grid-column: 1 / -1;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--accent);
+      min-height: 1rem;
+    }
+
+    /* Sections */
+    section { margin-bottom: 3rem; }
+    section h2 {
+      font-family: var(--font-mono);
+      font-weight: 500;
+      font-size: 0.72rem;
+      margin: 0 0 1rem 0;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 0.4rem;
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+    }
+    section h2 .kicker {
+      color: var(--ink);
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      min-width: 2.5rem;
+      display: inline-block;
+    }
+
+    .placeholder {
+      padding: 1rem;
+      border: 1px dashed var(--rule);
+      color: var(--ink-faint);
+      font-style: italic;
+      background: var(--paper-alt);
+      font-size: 0.85rem;
+    }
+
+    /* Critical dates */
+    #critical-dates {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 1rem;
+    }
+    #critical-dates > div {
+      padding: 0.3rem 0;
+      border-bottom: 1px dotted var(--rule-soft);
+      display: grid;
+      grid-template-columns: 8rem 1fr;
+      column-gap: 0.5rem;
+    }
+    #critical-dates > div:last-child { border-bottom: none; }
+    #critical-dates > div::before {
+      content: "";
+    }
+
+    /* Summary — editorial drop-cap-light treatment */
+    #summary p {
+      margin: 0;
+      font-size: 1.05rem;
+      line-height: 1.7;
+      max-width: 64ch;
+      color: var(--ink-soft);
+    }
+
+    /* Chart */
+    #chart-host {
+      position: relative;
+      height: 380px;
+    }
+    #chart-host.has-chart {
+      padding: 0;
+      border: none;
+      background: none;
+      font-style: normal;
+    }
+
+    /* Tables */
+    .scenario-title {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin: 2rem 0 0.6rem 0;
+      color: var(--ink);
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--ink);
+      padding-top: 0.6rem;
+    }
+    #table-conservative .scenario-title { margin-top: 0; }
+    .scenario-title .params {
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0.02em;
+      color: var(--ink-muted);
+      font-size: 0.72rem;
+    }
+    .scenario-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 0.8rem;
+    }
+    .scenario-table th,
+    .scenario-table td {
+      padding: 0.3rem 0.7rem;
+      border-bottom: 1px solid var(--rule-soft);
+      text-align: right;
+      color: var(--ink-soft);
+    }
+    .scenario-table th {
+      font-weight: 500;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      border-bottom: 1px solid var(--rule);
+      background: transparent;
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+    .scenario-table tbody tr:nth-child(even) td {
+      background: rgba(0, 0, 0, 0.012);
+    }
+    .scenario-table th:first-child,
+    .scenario-table td:first-child,
+    .scenario-table th:nth-child(2),
+    .scenario-table td:nth-child(2) {
+      text-align: left;
+    }
+    .scenario-table td:last-child,
+    .scenario-table th:last-child {
+      text-align: center;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .scenario-table tr.critical-row td {
+      background: var(--accent-soft) !important;
+      color: var(--ink);
+      font-weight: 500;
+    }
+    .scenario-table tr.critical-row td:first-child {
+      box-shadow: inset 3px 0 0 0 var(--accent);
+    }
+
+    /* Responsive */
+    @media (max-width: 960px) {
+      form { grid-template-columns: repeat(2, 1fr); }
+      form .field--wide { grid-column: span 2; }
+    }
+    @media (max-width: 768px) {
+      /* Tables: keep the rich 8-column schema but scroll horizontally inside
+         each scenario host instead of pushing the body wider than the viewport. */
+      [id^="table-"] {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+      }
+      .scenario-table { min-width: 640px; }
+    }
+    @media (max-width: 600px) {
+      body { padding: 1.5rem 1rem 3rem; }
+      .masthead {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+      .masthead-right { align-items: flex-start; }
+      form { grid-template-columns: 1fr; padding: 1rem; }
+      form .field--wide { grid-column: span 1; }
+      .scenario-table { font-size: 0.72rem; min-width: 560px; }
+      .scenario-table th, .scenario-table td { padding: 0.25rem 0.4rem; }
+      #chart-host { height: 300px; }
+      #critical-dates > div { grid-template-columns: 1fr; }
+      #summary p { font-size: 1rem; line-height: 1.6; }
+      section h2 .kicker { min-width: 1.6rem; }
+    }
+    @media (max-width: 380px) {
+      body { padding: 1rem 0.75rem 2.5rem; }
+      .masthead h1 { font-size: 1.35rem; }
+      form { padding: 0.85rem; gap: 0.75rem; }
+      #chart-host { height: 260px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-text">
+      <h1 data-i18n="title">Financial Independence Forecast</h1>
+      <p class="strapline" data-i18n="strapline">three scenarios · capital, passive, target</p>
+    </div>
+    <div class="masthead-right">
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button type="button" data-lang="en" class="lang-active">EN</button>
+        <span class="lang-sep">·</span>
+        <button type="button" data-lang="ru">RU</button>
+      </div>
+      <div class="dateline" id="dateline"></div>
+    </div>
+  </header>
+
+  <nav class="contents" aria-label="Section navigation">
+    <span class="contents-label" data-i18n="contents_label">Contents</span>
+    <a href="#critical-dates-section">
+      <span class="nav-kicker">I</span>
+      <span data-i18n="section_dates">Critical dates</span>
+    </a>
+    <a href="#summary-section">
+      <span class="nav-kicker">II</span>
+      <span data-i18n="section_summary">Summary</span>
+    </a>
+    <a href="#chart-section">
+      <span class="nav-kicker">III</span>
+      <span data-i18n="section_chart">Capital over time</span>
+    </a>
+    <a href="#tables-section">
+      <span class="nav-kicker">IV</span>
+      <span data-i18n="section_tables">Capital by year</span>
+    </a>
+  </nav>
+
+  <form id="fi-form">
+    <div class="field">
+      <label for="currentCapital" data-i18n="label_currentCapital">Current capital</label>
+      <input type="number" id="currentCapital" name="currentCapital" min="0" step="any" value="10000" required>
+    </div>
+    <div class="field">
+      <label for="monthlyIncome" data-i18n="label_monthlyIncome">Monthly income</label>
+      <input type="number" id="monthlyIncome" name="monthlyIncome" min="0" step="any" value="3000" required>
+    </div>
+    <div class="field">
+      <label for="monthlyExpenses" data-i18n="label_monthlyExpenses">Monthly expenses</label>
+      <input type="number" id="monthlyExpenses" name="monthlyExpenses" min="0" step="any" value="2000" required>
+    </div>
+    <div class="field">
+      <label for="horizonYears" data-i18n="label_horizonYears">Horizon (years)</label>
+      <input type="number" id="horizonYears" name="horizonYears" min="1" max="60" step="1" value="30" required>
+    </div>
+    <div class="field field--wide">
+      <label for="targetPassiveIncome" data-i18n="label_targetPassiveIncome">Target passive income (per month, in today's money)</label>
+      <input type="number" id="targetPassiveIncome" name="targetPassiveIncome" min="0.01" step="any" value="4000" required>
+    </div>
+    <div class="form-warning" id="form-warning"></div>
+    <div class="actions">
+      <button type="submit" data-i18n="button_calculate">Calculate</button>
+    </div>
+  </form>
+
+  <section id="critical-dates-section">
+    <h2><span class="kicker">I</span><span data-i18n="section_dates">Critical dates</span></h2>
+    <div id="critical-dates" class="placeholder">here will be 3 critical dates — one per scenario</div>
+  </section>
+
+  <section id="summary-section">
+    <h2><span class="kicker">II</span><span data-i18n="section_summary">Summary</span></h2>
+    <div id="summary" class="placeholder">here will be a 3-sentence summary</div>
+  </section>
+
+  <section id="chart-section">
+    <h2><span class="kicker">III</span><span data-i18n="section_chart">Capital over time</span></h2>
+    <div id="chart-host" class="placeholder">here will be a combined line chart (3 scenarios)</div>
+  </section>
+
+  <section id="tables-section">
+    <h2><span class="kicker">IV</span><span data-i18n="section_tables">Capital by year</span></h2>
+    <div id="table-conservative" class="placeholder">here will be table for conservative scenario</div>
+    <div id="table-realistic" class="placeholder">here will be table for realistic scenario</div>
+    <div id="table-aggressive" class="placeholder">here will be table for aggressive scenario</div>
+  </section>
+
+  <script>
+    const SCENARIOS = {
+      conservative: { return: 0.05, inflation: 0.06, incomeGrowth: 0.00 },
+      realistic:    { return: 0.08, inflation: 0.05, incomeGrowth: 0.03 },
+      aggressive:   { return: 0.12, inflation: 0.04, incomeGrowth: 0.07 },
+    };
+
+    const STRINGS = {
+      en: {
+        title: 'Financial Independence Forecast',
+        strapline: 'three scenarios · capital, passive, target',
+        issuePrefix: 'Issue',
+        contents_label: 'Contents',
+        label_currentCapital: 'Current capital',
+        label_monthlyIncome: 'Monthly income',
+        label_monthlyExpenses: 'Monthly expenses',
+        label_horizonYears: 'Horizon (years)',
+        label_targetPassiveIncome: "Target passive income (per month, in today's money)",
+        button_calculate: 'Calculate',
+        section_dates: 'Critical dates',
+        section_summary: 'Summary',
+        section_chart: 'Capital over time',
+        section_tables: 'Capital by year',
+        warn_cannot: 'Cannot calculate: ',
+        warn_overspend: 'Warning: monthly expenses exceed income — savings will stay at 0 until income outgrows expenses.',
+        valid: {
+          currentCapital:  'current capital must be ≥ 0',
+          monthlyIncome:   'monthly income must be ≥ 0',
+          monthlyExpenses: 'monthly expenses must be ≥ 0',
+          horizonYears:    'horizon must be 1..60 years',
+          target:          'target passive income must be > 0',
+        },
+        scenarioName: { conservative: 'Conservative', realistic: 'Realistic', aggressive: 'Aggressive' },
+        paramsTpl: (r, inf, ig) => `return ${r} · inflation ${inf} · income growth ${ig}`,
+        dateHit:  (name, year, n) => `${name} — ${year} (in ${n} years)`,
+        dateMiss: (name, H) => `${name} — beyond horizon (>${H} years)`,
+        summary: {
+          conservativeHit:    (n)      => `In the conservative scenario the goal is reached in ${n} years — this is the baseline.`,
+          conservativeMiss:   (H)      => `In the conservative scenario the goal is not reached within ${H} years — the baseline does not cover the requirement.`,
+          realisticMiss:      (H)      => `Realistic — beyond a ${H}-year horizon; even moderate assumptions do not reach the goal within the chosen window.`,
+          realisticConsMiss:  (r)      => `Realistic — in ${r} years, which already answers what the conservative scenario cannot.`,
+          realisticGap:       (r, gap) => `Realistic — in ${r} years, ${gap} years sooner; this is the scenario to keep in mind as the default.`,
+          realisticEqual:     (r)      => `Realistic — in ${r} years, roughly on par with the conservative case; this is the scenario to keep in mind as the default.`,
+          aggressiveMiss:     (H, p)   => `Aggressive — beyond a ${H}-year horizon; even a ${p} % annual return does not cover the goal within the chosen window.`,
+          aggressiveHit:      (a, p)   => `Aggressive — in ${a} years, conditional on a consistently high return of ${p} %, which is not historically guaranteed.`,
+        },
+      },
+      ru: {
+        title: 'Прогноз финансовой независимости',
+        strapline: 'три сценария · капитал, пассив, цель',
+        issuePrefix: 'Выпуск',
+        contents_label: 'Содержание',
+        label_currentCapital: 'Текущий капитал',
+        label_monthlyIncome: 'Ежемесячный доход',
+        label_monthlyExpenses: 'Ежемесячные расходы',
+        label_horizonYears: 'Горизонт (лет)',
+        label_targetPassiveIncome: 'Целевой пассивный доход (в месяц, в сегодняшних деньгах)',
+        button_calculate: 'Рассчитать',
+        section_dates: 'Критические даты',
+        section_summary: 'Резюме',
+        section_chart: 'Динамика капитала',
+        section_tables: 'Капитал по годам',
+        warn_cannot: 'Невозможно рассчитать: ',
+        warn_overspend: 'Внимание: расходы превышают доход — сбережения останутся на 0, пока доход не обгонит расходы.',
+        valid: {
+          currentCapital:  'текущий капитал должен быть ≥ 0',
+          monthlyIncome:   'ежемесячный доход должен быть ≥ 0',
+          monthlyExpenses: 'ежемесячные расходы должны быть ≥ 0',
+          horizonYears:    'горизонт должен быть в диапазоне 1..60 лет',
+          target:          'целевой пассивный доход должен быть > 0',
+        },
+        scenarioName: { conservative: 'Консервативный', realistic: 'Реалистичный', aggressive: 'Агрессивный' },
+        paramsTpl: (r, inf, ig) => `доходность ${r} · инфляция ${inf} · рост дохода ${ig}`,
+        dateHit:  (name, year, n) => `${name} — ${year} (через ${n} лет)`,
+        dateMiss: (name, H) => `${name} — за горизонтом (>${H} лет)`,
+        summary: {
+          conservativeHit:    (n)      => `В консервативном сценарии цель достижима за ${n} лет — это базовая планка.`,
+          conservativeMiss:   (H)      => `В консервативном сценарии цель не достигается за ${H} лет — базовая планка не покрывает требуемое.`,
+          realisticMiss:      (H)      => `В реалистичном — за горизонтом ${H} лет; даже умеренные предположения не выводят к цели за выбранный срок.`,
+          realisticConsMiss:  (r)      => `В реалистичном — за ${r} лет, что уже даёт ответ там, где консервативный сценарий не справляется.`,
+          realisticGap:       (r, gap) => `В реалистичном — за ${r} лет, что на ${gap} лет раньше; именно этот сценарий стоит держать в голове как «по умолчанию».`,
+          realisticEqual:     (r)      => `В реалистичном — за ${r} лет, примерно вровень с консервативным; именно этот сценарий стоит держать в голове как «по умолчанию».`,
+          aggressiveMiss:     (H, p)   => `В агрессивном — за горизонтом ${H} лет; даже ${p} % годовых не покрывают цель за выбранный срок.`,
+          aggressiveHit:      (a, p)   => `В агрессивном — за ${a} лет, при условии стабильно высокого return ${p} %, что исторически не гарантировано.`,
+        },
+      },
+    };
+
+    let currentLang = 'en';
+
+    function forecast(inputs, params) {
+      const { currentCapital, monthlyIncome, monthlyExpenses, horizonYears, targetPassiveIncome } = inputs;
+      const { return: r, inflation, incomeGrowth } = params;
+      const currentYear = new Date().getFullYear();
+
+      let capital   = currentCapital;
+      let income    = monthlyIncome;
+      let expenses  = monthlyExpenses;
+      let target    = targetPassiveIncome;
+
+      const years = [];
+      let criticalYear = null;
+
+      for (let n = 0; n <= horizonYears; n++) {
+        const passiveMonthly = capital * r / 12;
+        const covers = passiveMonthly >= target;
+        if (covers && criticalYear === null) criticalYear = n;
+
+        years.push({
+          year: n,
+          calendarYear: currentYear + n,
+          capital,
+          monthlyIncome: income,
+          monthlyExpenses: expenses,
+          passiveMonthly,
+          targetInflated: target,
+          coversTarget: (covers && criticalYear === n) ? 'Y' : ''
+        });
+
+        if (n < horizonYears) {
+          const savings = Math.max(income - expenses, 0) * 12;
+          capital  = capital  * (1 + r) + savings;
+          income   = income   * (1 + incomeGrowth);
+          expenses = expenses * (1 + inflation);
+          target   = target   * (1 + inflation);
+        }
+      }
+
+      return { years, criticalYear };
+    }
+
+    // Phase 2 sanity tables — gated behind ?debug=1 so the default console stays clean.
+    (function phase2Debug() {
+      if (!new URLSearchParams(location.search).has('debug')) return;
+      const defaults = {
+        currentCapital: 10000,
+        monthlyIncome: 3000,
+        monthlyExpenses: 2000,
+        horizonYears: 30,
+        targetPassiveIncome: 4000,
+      };
+
+      for (const [name, params] of Object.entries(SCENARIOS)) {
+        const { years, criticalYear } = forecast(defaults, params);
+        console.log(`%c[forecast] ${name} — criticalYear = ${criticalYear}`,
+          'font-weight: bold');
+        console.table(years.map(y => ({
+          n: y.year,
+          year: y.calendarYear,
+          capital: Math.round(y.capital),
+          income: Math.round(y.monthlyIncome),
+          expenses: Math.round(y.monthlyExpenses),
+          passive: Math.round(y.passiveMonthly),
+          target: Math.round(y.targetInflated),
+          covers: y.coversTarget,
+        })));
+      }
+
+      // Edge 1 — expenses > income → savings = 0, но капитал всё равно растёт за счёт return.
+      {
+        const r1 = forecast(
+          { currentCapital: 10000, monthlyIncome: 2000, monthlyExpenses: 3000,
+            horizonYears: 5, targetPassiveIncome: 4000 },
+          SCENARIOS.realistic
+        );
+        console.assert(r1.years[5].capital > r1.years[0].capital,
+          'Edge 1 failed: capital should grow on return alone when expenses > income');
+      }
+
+      // Edge 2 — capital = 0, savings > 0 → монотонный рост, criticalYear найдётся на длинном горизонте.
+      {
+        const r2 = forecast(
+          { currentCapital: 0, monthlyIncome: 5000, monthlyExpenses: 2000,
+            horizonYears: 60, targetPassiveIncome: 1000 },
+          SCENARIOS.realistic
+        );
+        const monotonic = r2.years.every((y, i, a) =>
+          i === 0 || y.capital >= a[i - 1].capital);
+        console.assert(monotonic, 'Edge 2 failed: capital should be monotonically non-decreasing');
+        console.assert(r2.criticalYear !== null,
+          'Edge 2 failed: criticalYear should exist on a 60-year horizon');
+      }
+
+      // Edge 3 — недостижимая цель → criticalYear === null.
+      {
+        const r3 = forecast(
+          { currentCapital: 10000, monthlyIncome: 3000, monthlyExpenses: 2000,
+            horizonYears: 30, targetPassiveIncome: 1e9 },
+          SCENARIOS.realistic
+        );
+        console.assert(r3.criticalYear === null,
+          'Edge 3 failed: criticalYear must be null for impossibly high target');
+      }
+
+      // Edge 4 — conservative + маленький капитал + большая цель → null на H=30.
+      {
+        const r4 = forecast(
+          { currentCapital: 100, monthlyIncome: 1000, monthlyExpenses: 900,
+            horizonYears: 30, targetPassiveIncome: 10000 },
+          SCENARIOS.conservative
+        );
+        console.assert(r4.criticalYear === null,
+          'Edge 4 failed: conservative small-cap/big-target should not reach FI in 30y');
+      }
+
+      console.log('%c[phase2] forecast tables logged, asserts passed (no AssertionError above)',
+        'color: green');
+    })();
+
+    // --- Phase 3: wire calc to form -------------------------------------------
+
+    const SCENARIO_ORDER = ['conservative', 'realistic', 'aggressive'];
+    const SCENARIO_HOSTS = {
+      conservative: 'table-conservative',
+      realistic:    'table-realistic',
+      aggressive:   'table-aggressive',
+    };
+    const SCENARIO_COLORS = {
+      conservative: '#8aa3b3',
+      realistic:    '#2e5d7a',
+      aggressive:   '#1a3a52',
+    };
+
+    let fiChart = null; // single Chart.js instance, recreated on each render
+
+    const fmtInt = (n) => Math.round(n).toLocaleString('en-US', { maximumFractionDigits: 0 });
+    const pct    = (x) => `${(x * 100).toFixed(0)}%`;
+
+    function readForm() {
+      const form = document.getElementById('fi-form');
+      const get = (id) => Number(form.elements[id].value);
+      return {
+        currentCapital:      get('currentCapital'),
+        monthlyIncome:       get('monthlyIncome'),
+        monthlyExpenses:     get('monthlyExpenses'),
+        horizonYears:        Math.round(get('horizonYears')),
+        targetPassiveIncome: get('targetPassiveIncome'),
+      };
+    }
+
+    function validate(inputs) {
+      const V = STRINGS[currentLang].valid;
+      const errors = [];
+      if (!(inputs.currentCapital >= 0))      errors.push(V.currentCapital);
+      if (!(inputs.monthlyIncome >= 0))       errors.push(V.monthlyIncome);
+      if (!(inputs.monthlyExpenses >= 0))     errors.push(V.monthlyExpenses);
+      if (!(inputs.horizonYears >= 1 && inputs.horizonYears <= 60))
+        errors.push(V.horizonYears);
+      if (!(inputs.targetPassiveIncome > 0))  errors.push(V.target);
+      return errors;
+    }
+
+    function renderScenarioTable(hostId, scenarioName, params, years) {
+      const host = document.getElementById(hostId);
+      host.classList.remove('placeholder');
+      host.removeAttribute('style');
+
+      const T = STRINGS[currentLang];
+      const titleText = T.scenarioName[scenarioName];
+      const paramsLine = T.paramsTpl(pct(params.return), pct(params.inflation), pct(params.incomeGrowth));
+
+      // Column header identifiers stay English by design — they double as the §6.1 schema
+      // names that AC5 verifies against. Toggling language does not rename schema fields.
+      const headers = ['year', 'calendarYear', 'capital', 'monthlyIncome', 'monthlyExpenses',
+                       'passiveMonthly', 'targetInflated', 'coversTarget'];
+
+      const headerRow = headers.map((h) => `<th>${h}</th>`).join('');
+      const bodyRows = years.map((y) => {
+        const critical = y.coversTarget === 'Y' ? ' class="critical-row"' : '';
+        return `<tr${critical}>` +
+          `<td>${y.year}</td>` +
+          `<td>${y.calendarYear}</td>` +
+          `<td>${fmtInt(y.capital)}</td>` +
+          `<td>${fmtInt(y.monthlyIncome)}</td>` +
+          `<td>${fmtInt(y.monthlyExpenses)}</td>` +
+          `<td>${fmtInt(y.passiveMonthly)}</td>` +
+          `<td>${fmtInt(y.targetInflated)}</td>` +
+          `<td>${y.coversTarget}</td>` +
+          `</tr>`;
+      }).join('');
+
+      host.innerHTML =
+        `<div class="scenario-title">${titleText}` +
+          `<span class="params">${paramsLine}</span>` +
+        `</div>` +
+        `<table class="scenario-table">` +
+          `<thead><tr>${headerRow}</tr></thead>` +
+          `<tbody>${bodyRows}</tbody>` +
+        `</table>`;
+    }
+
+    function renderChart(resultsByScenario) {
+      const host = document.getElementById('chart-host');
+      host.classList.remove('placeholder');
+      host.classList.add('has-chart');
+      host.innerHTML = '<canvas id="capital-chart"></canvas>';
+
+      const referenceYears = resultsByScenario[SCENARIO_ORDER[0]].years;
+      const labels = referenceYears.map((y) => y.calendarYear);
+
+      const datasets = SCENARIO_ORDER.map((name) => {
+        const { years, criticalYear } = resultsByScenario[name];
+        const pointRadius = years.map((_, i) => (i === criticalYear ? 5 : 0));
+        return {
+          label: name,
+          data: years.map((y) => Math.round(y.capital)),
+          borderColor: SCENARIO_COLORS[name],
+          backgroundColor: SCENARIO_COLORS[name],
+          fill: false,
+          borderWidth: 1.5,
+          pointRadius,
+          pointBackgroundColor: SCENARIO_COLORS[name],
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1.5,
+          pointHoverRadius: 4,
+          tension: 0,
+        };
+      });
+
+      if (fiChart) { fiChart.destroy(); fiChart = null; }
+
+      const ctx = document.getElementById('capital-chart').getContext('2d');
+      const monoFont = '"IBM Plex Mono", ui-monospace, Consolas, monospace';
+      const sansFont = '"IBM Plex Sans", system-ui, sans-serif';
+
+      Chart.defaults.font.family = sansFont;
+      Chart.defaults.color = '#6a7480';
+
+      fiChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              position: 'top',
+              align: 'end',
+              labels: {
+                font: { family: monoFont, size: 11 },
+                boxWidth: 14,
+                boxHeight: 2,
+                usePointStyle: false,
+                padding: 18,
+              },
+            },
+            tooltip: {
+              backgroundColor: '#1a1f24',
+              titleFont: { family: monoFont, size: 11 },
+              bodyFont:  { family: monoFont, size: 11 },
+              padding: 10,
+              boxPadding: 4,
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${fmtInt(ctx.parsed.y)}`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { color: '#e5e2d9', drawBorder: false },
+              ticks: {
+                font: { family: monoFont, size: 10 },
+                maxRotation: 0,
+                autoSkipPadding: 16,
+              },
+            },
+            y: {
+              grid: { color: '#e5e2d9', drawBorder: false },
+              ticks: {
+                font: { family: monoFont, size: 10 },
+                callback: (v) => fmtInt(v),
+              },
+            },
+          },
+        },
+      });
+      // Expose for AC verification (AC8 / AC9).
+      window.fiChart = fiChart;
+    }
+
+    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+    function renderCriticalDates(resultsByScenario, horizonYears) {
+      const host = document.getElementById('critical-dates');
+      host.classList.remove('placeholder');
+      const currentYear = new Date().getFullYear();
+      const T = STRINGS[currentLang];
+
+      const lines = SCENARIO_ORDER.map((name) => {
+        const c = resultsByScenario[name].criticalYear;
+        const scenarioLabel = T.scenarioName[name];
+        if (c === null) return T.dateMiss(scenarioLabel, horizonYears);
+        return T.dateHit(scenarioLabel, currentYear + c, c);
+      });
+
+      host.innerHTML = lines.map((l) => `<div>${l}</div>`).join('');
+    }
+
+    function renderSummary(resultsByScenario, horizonYears) {
+      const host = document.getElementById('summary');
+      host.classList.remove('placeholder');
+
+      const T = STRINGS[currentLang].summary;
+      const cY = resultsByScenario.conservative.criticalYear;
+      const rY = resultsByScenario.realistic.criticalYear;
+      const aY = resultsByScenario.aggressive.criticalYear;
+      const aP = Math.round(SCENARIOS.aggressive.return * 100);
+
+      const s1 = cY !== null ? T.conservativeHit(cY) : T.conservativeMiss(horizonYears);
+
+      let s2;
+      if (rY === null) {
+        s2 = T.realisticMiss(horizonYears);
+      } else if (cY === null) {
+        s2 = T.realisticConsMiss(rY);
+      } else {
+        const gap = cY - rY;
+        s2 = gap > 0 ? T.realisticGap(rY, gap) : T.realisticEqual(rY);
+      }
+
+      const s3 = aY !== null ? T.aggressiveHit(aY, aP) : T.aggressiveMiss(horizonYears, aP);
+
+      host.innerHTML = `<p>${s1} ${s2} ${s3}</p>`;
+    }
+
+    function renderAll(inputs) {
+      const warningEl = document.getElementById('form-warning');
+      const T = STRINGS[currentLang];
+      const errors = validate(inputs);
+      if (errors.length) {
+        warningEl.style.color = '#a00';
+        warningEl.textContent = T.warn_cannot + errors.join('; ');
+        return;
+      }
+      if (inputs.monthlyExpenses > inputs.monthlyIncome) {
+        warningEl.style.color = '';
+        warningEl.textContent = T.warn_overspend;
+      } else {
+        warningEl.textContent = '';
+      }
+
+      const resultsByScenario = {};
+      for (const name of SCENARIO_ORDER) {
+        const params = SCENARIOS[name];
+        const result = forecast(inputs, params);
+        resultsByScenario[name] = result;
+        renderScenarioTable(SCENARIO_HOSTS[name], name, params, result.years);
+      }
+      renderCriticalDates(resultsByScenario, inputs.horizonYears);
+      renderSummary(resultsByScenario, inputs.horizonYears);
+      renderChart(resultsByScenario);
+    }
+
+    function applyLanguage(lang) {
+      if (!STRINGS[lang]) return;
+      currentLang = lang;
+      document.documentElement.lang = lang;
+      document.title = STRINGS[lang].title;
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.dataset.i18n;
+        if (STRINGS[lang][key] !== undefined) el.textContent = STRINGS[lang][key];
+      });
+      document.querySelectorAll('.lang-toggle button').forEach((btn) => {
+        btn.classList.toggle('lang-active', btn.dataset.lang === lang);
+      });
+      const dateline = document.getElementById('dateline');
+      if (dateline) {
+        const iso = new Date().toISOString().slice(0, 10);
+        dateline.textContent = `${STRINGS[lang].issuePrefix} · ${iso}`;
+      }
+      renderAll(readForm());
+    }
+
+    document.getElementById('fi-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      renderAll(readForm());
+    });
+
+    document.querySelectorAll('.lang-toggle button').forEach((btn) => {
+      btn.addEventListener('click', () => applyLanguage(btn.dataset.lang));
+    });
+
+    // Initial language bootstrap also triggers the first renderAll, so the page is
+    // useful on first paint and Playwright gets stable DOM without clicking submit.
+    applyLanguage('en');
+  </script>
+</body>
+</html>
